@@ -2,7 +2,7 @@ project('Aegisub-CLI', ['c', 'cpp'],
         license: 'BSD-3-Clause',
         meson_version: '>=0.55.0',
         # c_std=c11 should be here but it breaks Linux builds for some reason, needs investigation
-        default_options: ['cpp_std=c++11', 'b_lto=true'],
+        default_options: ['cpp_std=c++20', 'b_lto=true'],
         version: '3.2.2')
 
 if host_machine.system() == 'windows'
@@ -43,7 +43,7 @@ if host_machine.system() == 'darwin'
     add_languages('objc', 'objcpp')
     add_project_arguments('-DGL_SILENCE_DEPRECATION', language: 'cpp')
     # meson does not currently support objcpp_std
-    add_project_arguments('-std=c++11', language: 'objcpp')
+    add_project_arguments('-std=c++14', language: 'objcpp')
 elif host_machine.system() != 'windows'
     conf.set('WITH_FONTCONFIG', '1')
     deps += dependency('fontconfig')
@@ -122,7 +122,7 @@ luajit_sp = subproject('luajit')
 luajit_inc = luajit_sp.get_variable('incdir')
 deps += luajit_sp.get_variable('luajit_dep')
 
-subdir('subprojects/luabins/src')
+subdir('luabins/src')
 
 # TODO: csri
 

@@ -51,9 +51,19 @@ Refer to the source code of the automation or the debug output printed by `aegis
 
 Install Meson and Ninja (e.g. using pip for Python 3), as well as development libraries for ICU, Boost and FFMS2, and run
 
+```bash
+meson setup --prefix=/usr/bin --buildtype=release builddir
+ninja -C builddir src/aegisub-cli
 ```
-$ meson --prefix=/usr --buildtype=release builddir
-$ ninja -C builddir src/aegisub-cli
+
+- Required Dependencies:
+
+```bash
+# if Arch Linux
+sudo pacman -S meson
+
+sudo pacman -S --needed base-devel cmake git python-pip \
+  boost boost-libs icu ffms2 fontconfig
 ```
 
 The prefix should be set to the same prefix as your main Aegisub installation, as this is where Aegisub CLI will search for automation modules.

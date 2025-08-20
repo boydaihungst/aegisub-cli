@@ -73,6 +73,8 @@
 #include <locale>
 #include "string_codec.h"
 
+#include <iostream>
+
 #define StartupLog(a) LOG_D("main") << a
 #define StartupError(a) LOG_E("main") << a
 
