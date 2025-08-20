@@ -52,7 +52,7 @@ Refer to the source code of the automation or the debug output printed by `aegis
 Install Meson and Ninja (e.g. using pip for Python 3), as well as development libraries for ICU, Boost and FFMS2, and run
 
 ```bash
-meson setup --prefix=/usr/bin --buildtype=release builddir
+meson setup --prefix=/usr --buildtype=release builddir
 ninja -C builddir src/aegisub-cli
 ```
 
