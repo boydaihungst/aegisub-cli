@@ -2,13 +2,8 @@ name: Build Aegisub-CLI
 
 on:
   push:
-    branches:
-      - main
-      - master
-  pull_request:
-    branches:
-      - main
-      - master
+    tags:
+      - "v*" # trigger only on version tags like v1.0.0
 
 jobs:
   build-linux:
@@ -22,11 +17,19 @@ jobs:
       - name: Install dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y aegisub libicu-dev libboost-all-dev libffms2-dev libfontconfig1-dev libwxgtk3.2-dev zlib1g-dev
+          sudo apt-get install -y curl p7zip-full libicu-dev libboost-all-dev libffms2-dev libfontconfig1-dev libwxgtk3.2-dev zlib1g-dev libreadline-dev
+          sudo curl -L -o "Ubuntu.AppImage.zip" "https://github.com/arch1t3cht/Aegisub/releases/download/feature_12/Ubuntu.AppImage.zip"
+          APPDIR="Aegisub"
+          sudo 7z x "Ubuntu.AppImage.zip"
+          sudo 7z x "Aegisub-x86_64.AppImage" -o"$APPDIR"
+          if [ ! -d "$APPDIR" ]; then
+            echo "[-] Error: $APPDIR not found after extraction!"
+            exit 1
+          fi
+          sudo cp -r "$APPDIR/usr"/* /usr/
 
       - name: Install Meson and Ninja
-        run: |
-          pip3 install meson ninja
+        run: pip3 install meson ninja
 
       - name: Configure with Meson
         run: meson setup --prefix=/usr --buildtype=release builddir
@@ -34,30 +37,79 @@ jobs:
       - name: Build with Ninja
         run: ninja -C builddir src/aegisub-cli
 
+      - name: Package binary
+        run: |
+          cd builddir/src
+          zip -9 ../aegisub-cli-linux64.zip aegisub-cli
+        shell: bash
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegisub-cli-linux64.zip
+          path: builddir/aegisub-cli-linux64.zip
+
   build-windows:
     name: Build on Windows
     runs-on: windows-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Install vcpkg
-        run: |
-          git clone https://github.com/microsoft/vcpkg.git
-          .\vcpkg\bootstrap-vcpkg.bat
+      - name: Setup vcpkg
+        uses: microsoft/setup-vcpkg@v1
+        with:
+          vcpkgTriplet: x64-windows
+          cache: true
+
+      - name: Install dependencies with vcpkg
+        run: vcpkg install boost-chrono boost-filesystem boost-thread boost-locale boost-regex boost-program-options icu ffms2 zlib
         shell: pwsh
 
-      - name: Install Boost with vcpkg
-        run: |
-          .\vcpkg\vcpkg.exe install boost --triplet x64-windows
-        shell: pwsh
+      - name: Install Meson and Ninja
+        run: pip install meson ninja
 
       - name: Configure with Meson
         run: |
-          meson setup --buildtype=release --default-library=static --wrap-mode=nofallback builddir
+          meson setup builddir `
+            --buildtype=release `
+            -Ddefault_library=static `
+            -Dlocal_boost=false `
+            -Dsystem_luajit=true `
+            --wrap-mode=nodownload
         shell: pwsh
 
-      - name: Build with Ninja
+      - name: Build
         run: ninja -C builddir src/aegisub-cli.exe
         shell: pwsh
+
+      - name: Package binary
+        run: |
+          cd builddir/src
+          Compress-Archive -Path aegisub-cli.exe -DestinationPath ../aegisub-cli-win64.zip
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegisub-cli-win64.zip
+          path: builddir/aegisub-cli-win64.zip
+
+  release:
+    name: Create Release
+    needs: [build-linux, build-windows]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/aegisub-cli-linux64.zip/aegisub-cli-linux64.zip
+            artifacts/aegisub-cli-win64.zip/aegisub-cli-win64.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
