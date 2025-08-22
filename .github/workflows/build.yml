@@ -1,0 +1,53 @@
+name: Build Aegisub-CLI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build-linux:
+    name: Build on Linux
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y aegisub libicu-dev libboost-all-dev libffms2-dev libfontconfig1-dev libwxgtk3.0-gtk3-dev zlib1g-dev
+
+      - name: Install Meson and Ninja
+        run: |
+          pip3 install meson ninja
+
+      - name: Configure with Meson
+        run: meson setup --prefix=/usr --buildtype=release builddir
+
+      - name: Build with Ninja
+        run: ninja -C builddir src/aegisub-cli
+
+  build-windows:
+    name: Build on Windows
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Install Meson and Ninja
+        run: |
+          pip install meson ninja
+
+      - name: Configure with Meson
+        run: meson -Ddefault_library=static -Dlocal_boost=true --buildtype=release builddir
+
+      - name: Build with Ninja
+        run: ninja -C builddir src/aegisub-cli.exe
